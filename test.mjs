@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {parseCatalog,comparePairs,escapeHtml,normalized} from './core.mjs';
+const items=parseCatalog('A|Compass|Brass pocket compass\nB|Pocket Compass|Brass compass\nC|Teapot|Blue ceramic teapot');
+test('strict parsing prevents silently skipped inventory',()=>{assert.throws(()=>parseCatalog('A|Title|Description\nbad line'));assert.throws(()=>parseCatalog('A|One|Desc\nA|Two|Desc'));assert.throws(()=>parseCatalog('A|One|Desc'));});
+test('resource limits are enforced before model loading',()=>{assert.throws(()=>parseCatalog('A'.repeat(120001)));assert.throws(()=>parseCatalog(Array.from({length:101},(_,i)=>`${i}|Title|Description`).join('\n')));assert.throws(()=>parseCatalog('A|Title|'+ 'x'.repeat(701)+'\nB|Title|Desc'));});
+test('cosine normalizes scaled embeddings and keeps unrelated vectors out',()=>{const p=comparePairs(items,[[2,0],[5,0],[0,3]],0.8);assert.equal(p.length,1);assert.equal(p[0].score,1);assert.equal(p[0].identical,false);});
+test('empty, nonfinite and misaligned model responses cannot become results',()=>{for(const v of [[],[[0,0],[1,0],[0,1]],[[NaN,0],[1,0],[0,1]],[[1,0],[1],[0,1]]])assert.throws(()=>comparePairs(items,v,0.8));});
+test('inventory text is escaped for rendering',()=>{assert.equal(escapeHtml('<script>&"'), '&lt;script&gt;&amp;&quot;');});
+test('Unicode normalization does not label unrelated non-Latin titles identical',()=>{assert.notEqual(normalized('陶器 茶器'),normalized('灯台 置物'));});
+test('identical text evidence is separate from similarity',()=>{const p=comparePairs(parseCatalog('A|BRASS Compass|Pocket\nB|Brass compass|Pocket'),[[1,0],[1,0]],0.8);assert.equal(p[0].identical,true);assert.equal(p[0].lexical,1);});
+console.log('tick: 입력·대조 점수·실패 응답·화면 삽입 검증');

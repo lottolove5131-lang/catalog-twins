@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catalog Twins — Duplicate Listing Finder</title>
+<!--
+MIT License
+Copyright (c) 2026 Catalog Twins contributors
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+<style>
+html { word-break: keep-all; }
+body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; padding: 0; background: #f7f5f0; color: #222; line-height: 1.6; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 20px 16px 48px; }
+header { background: #1f2937; color: #fff; padding: 28px 16px; }
+header .wrap { padding-top: 0; padding-bottom: 0; }
+h1 { margin: 0 0 6px; font-size: 1.6rem; }
+.sub { margin: 0; color: #d1d5db; font-size: 0.95rem; }
+.card { background: #fff; border: 1px solid #e5e0d5; border-radius: 12px; padding: 18px; margin-top: 18px; }
+label { font-weight: 600; display: block; margin-bottom: 8px; }
+textarea { width: 100%; min-height: 190px; box-sizing: border-box; font-family: ui-monospace, monospace; font-size: 0.85rem; padding: 10px; border: 1px solid #ccc; border-radius: 8px; resize: vertical; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+select, button { font-size: 1rem; padding: 10px 16px; border-radius: 8px; border: 1px solid #ccc; }
+button.primary { background: #1f2937; color: #fff; border: none; cursor: pointer; }
+button.primary:disabled { background: #9ca3af; cursor: wait; }
+button.ghost { background: #fff; cursor: pointer; }
+#status { margin-top: 12px; font-size: 0.95rem; min-height: 1.6em; }
+#status.loading { color: #92400e; }
+#status.error { color: #b91c1c; font-weight: 600; }
+#status.done { color: #166534; }
+.pair { border: 1px solid #e5e0d5; border-left: 5px solid #d97706; border-radius: 8px; padding: 12px 14px; margin-top: 12px; background: #fffdf7; }
+.pair .ids { font-weight: 700; }
+.pair .score { display: inline-block; background: #1f2937; color: #fff; border-radius: 999px; padding: 2px 12px; font-size: 0.85rem; margin-left: 8px; }
+.pair .ev { font-size: 0.9rem; color: #444; margin-top: 6px; }
+.badge { display: inline-block; background: #b91c1c; color: #fff; font-size: 0.75rem; border-radius: 6px; padding: 2px 8px; margin-left: 8px; }
+.note { font-size: 0.85rem; color: #666; }
+.privacy { background: #ecfdf5; border: 1px solid #a7f3d0; }
+footer { margin-top: 28px; font-size: 0.8rem; color: #888; }
+body{background:#f8fafc;color:#17232d;font-family:'Segoe UI',sans-serif;word-break:keep-all;overflow-wrap:break-word}header{background:#2c4655}h1{font-family:Georgia,serif;font-size:2.5rem;font-weight:normal}.wrap{max-width:1080px}.card{border-color:#ced9e0;background:white;border-radius:6px}.privacy{border-left:5px solid #247b80;background:#eef7f8}.pair{background:white;border-color:#ced9e0;border-left-color:#247b80}.pair-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.pair .score{background:#247b80;margin:0}.compare{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px}.compare section{background:#f8fafc;padding:12px;min-width:0;border-radius:4px}.compare h3{margin:0;font-size:1.05rem}.compare p{margin:8px 0 0}.badge{background:#2c4655}.note{color:#445766}button.primary{background:#247b80}textarea{font-family:Consolas,monospace;font-size:14px}button:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #247b80;outline-offset:3px}#results{word-break:keep-all;overflow-wrap:break-word}@media(max-width:650px){.compare{grid-template-columns:1fr}.row{align-items:stretch}button,select{flex:1}h1{font-size:2rem}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header>
+<div class="wrap">
+<h1>Catalog Twins</h1>
+<p class="sub">Two listings, one inventory headache. Find similar descriptions and compare the details before deciding what to keep.</p>
+</div>
+</header>
+<div class="wrap">
+<div class="card privacy">
+<strong>Private by design.</strong> Listing text is processed in this browser. The first run downloads an open model and its runtime from Hugging Face and jsDelivr. No account or AI API key is required.
+</div>
+<div class="card">
+<label for="input">Paste your catalog — one item per line: <code>id|title|description</code></label>
+<textarea id="input">LOT-001|Vintage Brass Compass|Old brass pocket compass with hinged lid, glass intact, patina on case
+LOT-002|Antique Brass Pocket Compass|Vintage brass compass, hinged cover, glass unbroken, aged patina
+LOT-003|Ceramic Blue Teapot|Hand-painted blue ceramic teapot, small chip on spout
+LOT-004|Blue Ceramic Tea Pot|Hand painted ceramic teapot in blue, tiny chip near spout
+LOT-005|Wooden Toy Train Set|Wooden train with 3 cars, red engine, paint worn on edges
+LOT-006|Film Camera 35mm|Used 35mm film camera, shutter works, light seals replaced
+LOT-007|Brass Compass Vintage|Pocket compass made of brass, lid hinge loose, glass fine
+LOT-008|Ceramic Teapot Blue|Blue hand-painted teapot, ceramic, no chips, new in box</textarea>
+<div class="row">
+<label for="threshold" style="margin:0">Review threshold</label>
+<select id="threshold">
+<option value="0.75">0.75 — broader review</option>
+<option value="0.80" selected>0.80 — default</option>
+<option value="0.85">0.85 — fewer candidates</option>
+</select>
+<button class="primary" id="go">Find duplicate candidates</button>
+<button class="ghost" id="reset">Reset sample</button>
+</div>
+<div id="status" aria-live="polite"></div>
+</div>
+<div class="card">
+<strong>How to read the results</strong>
+<p class="note">Scores measure text similarity, not the probability that two listings are the same product. Different sizes, quantities or condition can still score highly. Compare both descriptions and shared terms. This tool never merges or deletes a listing. English descriptions work best; keep descriptions short.</p>
+</div>
+<div id="results"></div>
+<footer>Sample listings are fictional. Catalog Twins · MIT License · Built for DEV Hacktoberfest Week 2 (Side Hustle) · October 2026</footer>
+</div>
+<script type="module" src="./app.mjs"></script>
+</body>
+</html>
